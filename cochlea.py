@@ -51,7 +51,12 @@ points_normal_voxel = np.divide(points_normal, voxelSize)
 # Displaying points
 # Creating figure
 fig = plt.figure(figsize=(10, 7))
+
+# Set Axes accordingly to img dimensions
 ax = plt.axes(projection="3d")
+ax.set_xlim(0, width) 
+ax.set_ylim(0, height) 
+ax.set_zlim(0, slices)
 
 # Creating plot of spiral points
 ax.scatter3D(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], color="green")
@@ -61,6 +66,19 @@ ax.quiver(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], points_normal
 
 # Test of normal vector in voxels
 #ax.quiver(511, 216, 108, 3, -7, -2, color = "red")
+
+#######
+
+x = np.linspace(10, 30, 3)
+y = np.linspace(10, 30, 3)
+
+x, y = np.meshgrid(x, y)
+
+plane_equation = 0.12 * x + 0.01 * y + 1.09
+
+ax.plot_surface(x, y, plane_equation, color='red')
+
+######
 
 plt.title("Spiral points in cochlea")
 plt.xlabel("width")     # x-axis = scanner-left/right 
