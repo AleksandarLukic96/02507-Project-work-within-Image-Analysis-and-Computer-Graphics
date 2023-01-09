@@ -68,26 +68,27 @@ ax.quiver(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], points_normal
 #ax.quiver(511, 216, 108, 3, -7, -2, color = "red")
 
 #######
-x0 = round(points_voxel[50,0])
-y0 = round(points_voxel[50,1])
-z0 = round(points_voxel[50,2])
-print("x0: " + str(x0) + " y0: " + str(y0) + " z0: " + str(z0))
+for i in range(len(points_voxel)-1, 0, -1):
+    x0 = round(points_voxel[i,0])
+    y0 = round(points_voxel[i,1])
+    z0 = round(points_voxel[i,2])
+    #print("x0: " + str(x0) + " y0: " + str(y0) + " z0: " + str(z0))
 
-x = np.linspace(x0-25, x0+25, 3)
-y = np.linspace(y0-25, y0+25, 3)
-x, y = np.meshgrid(x, y)
+    x = np.linspace(x0-5, x0+5, 3)
+    y = np.linspace(y0-5, y0+5, 3)
+    x, y = np.meshgrid(x, y)
 
-a = round(np.divide(-0.2600000000000007, voxelSize))
-b = round(np.divide(0.07500000000000018, voxelSize))
-c = round(np.divide(-0.08999999999999986, voxelSize))
-print("a: " + str(a) + " b: " + str(b) + " c: " + str(c))
+    a = round(points_normal_voxel[i][0])
+    b = round(points_normal_voxel[i][1])
+    c = round(points_normal_voxel[i][2])
+    #print("a: " + str(a) + " b: " + str(b) + " c: " + str(c))
 
-# Rewritten equation: a*(x-x0) / -c + b*(y-y0) / -c + z0 = z
-#plane_equation = a*(x - x0) + b*(y - y0) + c*()
-plane_equation = (a*(x-x0) / (-c)) + (b*(y-y0) / (-c)) + z0
-print(f"({a}*(x-{x0}) / (-{c})) + ({b}*(y-{y0}) / (-{c})) + {z0}")
+    # Rewritten equation: a*(x-x0) / -c + b*(y-y0) / -c + z0 = z
+    #plane_equation = a*(x - x0) + b*(y - y0) + c*()
+    plane_equation = (a*(x-x0) / (-c)) + (b*(y-y0) / (-c)) + z0
+    #print(f"({a}*(x-{x0}) / (-{c})) + ({b}*(y-{y0}) / (-{c})) + {z0}")
 
-ax.plot_surface(x, y, plane_equation, color = 'red')
+    ax.plot_surface(x, y, plane_equation, color = 'red')
 
 ######
 
