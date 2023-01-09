@@ -3,6 +3,8 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage import io
+from mpl_toolkits import mplot3d
+from matplotlib.widgets import RangeSlider, Slider
 
 
 img = nib.load('data/cochlea.nii')
@@ -11,6 +13,28 @@ print(img_data.shape)
 
 img_seg = nib.load('data/cochlea_segmentation.nii')
 seg_data = img_seg.get_fdata()
+
+
+# attempt to plot our 3d structure.
+
+# original data stored as array with 0's and 1's.
+# to make a scatterplot, we would instead like only the positions in which there are 1's
+
+def plot_3d_of_cochlea(resolution=10):
+    xyzdata = []
+    for x in range(0, 600, resolution):
+        for y in range(0, 400, resolution):
+            for z in range(0, 350, resolution):
+                if seg_data[x, y, z] == 1:
+                    xyzdata.append([x, y, z])
+    xyzdata = np.array(xyzdata)
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    zdata = xyzdata[:, 2]
+    ax.scatter3D(xyzdata[:, 0], xyzdata[:, 1], zdata, c=zdata, alpha=0.1)
+    coch_data = np.genfromtxt('data/cochlea_spiral_points_transformed.txt')
+    ax.scatter3D(coch_data[:, 0], coch_data[:, 1], coch_data[:, 2], cmap='Reds')
+    plt.show()
 
 
 def show_slices(slices):
@@ -30,6 +54,7 @@ v_max = slice_0.max()
 
 voxel_size = 0.02449999935925007
 slice_size = 200
+
 
 # auxilliary function
 def calculate_point_on_circle(center, radius, angle, vector1, vector2):
@@ -73,23 +98,46 @@ def extract_points_in_image(norm_vect, data_point):
             # is implemented, it can be used here
             rounded_point = np.array([int(i) for i in point_in_data])
             try:
-                visualised_slice[r, c] = img_data[rounded_point[0], rounded_point[1], rounded_point[2]]
+                visualised_slice[r, c] = seg_data[rounded_point[0], rounded_point[1], rounded_point[2]]
             except IndexError:
                 visualised_slice[r, c] = 0
     return visualised_slice
 
 
-one_data_point = np.array([511, 216, 108])
-another_data_point = np.array([514, 209, 106])
+one_data_point = np.array([380, 76, 101])
+another_data_point = np.array([391, 76, 109])
 norm_vect_test = another_data_point - one_data_point
-
 
 print(f"norm vector for testing: {norm_vect_test}")
 
-testslice = extract_points_in_image(norm_vect_test, [511, 216, 108])
+
+def rotation1(angle):
+    angle = angle * math.pi / 180
+    return np.array([[1, 0, 0],
+                     [0, math.cos(angle), -math.sin(angle)],
+                     [0, math.sin(angle), math.cos(angle)]])
+
+
+def rotation2(angle):
+    angle = angle * math.pi / 180
+    return  np.array([[math.cos(angle), 0, math.sin(angle)],
+                      [0, 1, 0],
+                      [-math.sin(angle), 0, math.cos(angle)]])
+
+
+def rotation3(angle):
+    angle = angle * math.pi / 180
+    return np.array([[math.cos(angle), -math.sin(angle), 0],
+                     [math.sin(angle), math.cos(angle), 0],
+                     [0, 0, 1]])
+
+
+testslice = extract_points_in_image(norm_vect_test, one_data_point)
 # useful arguments for imshow: cmap='gray', vmin=v_min, vmax=v_max
 io.imshow(testslice)
 io.show()
+
+
 
 
 
