@@ -62,21 +62,32 @@ ax.set_zlim(0, slices)
 ax.scatter3D(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], color="green")
 
 # Creating plot of normal vectors:
-ax.quiver(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], points_normal_voxel[:,0], points_normal_voxel[:,1], points_normal_voxel[:,2], color = "red")
+ax.quiver(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], points_normal_voxel[:,0], points_normal_voxel[:,1], points_normal_voxel[:,2], color = "blue")
 
 # Test of normal vector in voxels
 #ax.quiver(511, 216, 108, 3, -7, -2, color = "red")
 
 #######
+x0 = round(points_voxel[50,0])
+y0 = round(points_voxel[50,1])
+z0 = round(points_voxel[50,2])
+print("x0: " + str(x0) + " y0: " + str(y0) + " z0: " + str(z0))
 
-x = np.linspace(10, 30, 3)
-y = np.linspace(10, 30, 3)
-
+x = np.linspace(x0-25, x0+25, 3)
+y = np.linspace(y0-25, y0+25, 3)
 x, y = np.meshgrid(x, y)
 
-plane_equation = 0.12 * x + 0.01 * y + 1.09
+a = round(np.divide(-0.2600000000000007, voxelSize))
+b = round(np.divide(0.07500000000000018, voxelSize))
+c = round(np.divide(-0.08999999999999986, voxelSize))
+print("a: " + str(a) + " b: " + str(b) + " c: " + str(c))
 
-ax.plot_surface(x, y, plane_equation, color='red')
+# Rewritten equation: a*(x-x0) / -c + b*(y-y0) / -c + z0 = z
+#plane_equation = a*(x - x0) + b*(y - y0) + c*()
+plane_equation = (a*(x-x0) / (-c)) + (b*(y-y0) / (-c)) + z0
+print(f"({a}*(x-{x0}) / (-{c})) + ({b}*(y-{y0}) / (-{c})) + {z0}")
+
+ax.plot_surface(x, y, plane_equation, color = 'red')
 
 ######
 
