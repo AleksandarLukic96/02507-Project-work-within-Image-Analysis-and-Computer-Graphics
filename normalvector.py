@@ -28,7 +28,6 @@ voxel_size = 0.02449999935925007
 width_in_mm = epi_shape[0] * voxel_size                      
 height_in_mm = epi_shape[1] * voxel_size
 depth_in_mm = epi_shape[2] * voxel_size
-#print("(" + str(width_in_mm) + ", " + str(height_in_mm) + ", " + str(depth_in_mm) + ")")
 
 # Find vector between two points
 def vector3d_between_two_points(v1, v2):
@@ -45,21 +44,29 @@ z = data[:, 2]
 M = []
 
 for i in range(x.size-1, 0, -1):
+    #print(i)
     v1 = np.array([x[i], y[i], z[i]])
+    #print(v1)
     v2 = np.array([x[i-1], y[i-1], z[i-1]])
+    #print(v2)
     v3 = vector3d_between_two_points(v1, v2) * (-1)
+    #print(v3)
     M.append([v3[0], v3[1], v3[2]])
 
+print(x.size)
+print(len(M))
+print(str(M[x.size-2]))
+
 # Edge case:
-file.write(str(M[x.size-1][0]))
+file.write(str(M[len(M)-1][0]))
 file.write(' ')
-file.write(str(M[x.size-1][1]))
+file.write(str(M[len(M)-1][1]))
 file.write(' ')
-file.write(str(M[x.size-1][2]))
+file.write(str(M[len(M)-1][2]))
 file.write('\n')
 
 # Print normal vectors to file
-for i in range(x.size-1, 0, -1):
+for i in range(len(M)-1, -1, -1):
     file.write(str(M[i][0]))
     file.write(' ')
     file.write(str(M[i][1]))
