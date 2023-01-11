@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import os
 
 # Define path to directory on any machine
-path = os.getcwd() + "\\02507\\data\\cochlea\\"
+path = os.getcwd() + "\\data\\"
 #print("path: " + path)
 
 # Choose .nii file for examination 

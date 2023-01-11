@@ -6,7 +6,7 @@ from matplotlib import image as mpimg
 from mpl_toolkits import mplot3d
 
 # Define path to directory on any machine
-path = os.getcwd() + "\\02507\\data\\cochlea\\"
+path = os.getcwd() + "\\data\\"
 #print("path_to_nii: " + path_to_nii)
 
 path_points = path + "cochlea_spiral_points.txt"
