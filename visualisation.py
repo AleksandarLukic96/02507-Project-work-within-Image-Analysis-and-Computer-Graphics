@@ -3,14 +3,22 @@ import math
 import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
+from nibabel.affines import apply_affine
 from skimage import io
-from mpl_toolkits import mplot3d
-from matplotlib.widgets import RangeSlider, Slider
+from skimage.morphology import dilation, erosion, disk
+
+# ########## GLOBAL VARIABLES #########
+# Currently the size of the slices to draw is hard-coded to be this number:
+slice_size = 200
+
+# This indicates how thick a border we want when removing redundant data
+border_thickness = 2
+#######################################
 
 # Define path to directory on any machine
 path = os.getcwd() + "\\data\\"
-#print("path_to_nii: " + path_to_nii)
 
+# Loading some of the relevant data
 img = nib.load(path + "cochlea.nii")
 img_data = img.get_fdata()
 print(img_data.shape)
@@ -18,13 +26,37 @@ print(img_data.shape)
 img_seg = nib.load(path + "cochlea_segmentation.nii")
 seg_data = img_seg.get_fdata()
 
+data_points = np.genfromtxt(path + "cochlea_spiral_points.txt", dtype='float')
 
-# attempt to plot our 3d structure.
 
-# original data stored as array with 0's and 1's.
-# to make a scatterplot, we would instead like only the positions in which there are 1's
+# Transform data points in physical space to voxels
+def transform_data(data):
+    trn = open('data/cochlea_spiral_points_transformed.txt', 'w')
 
-def plot_3d_of_cochlea(resolution=10):
+    voxel_size = img.header['pixdim'][1]
+    x = data[:, 0]
+    y = data[:, 1]
+    z = data[:, 2]
+
+    for i in range(0, x.size):
+        trn.write(str(round((x[i] + img.header['qoffset_x']) / voxel_size)))
+        trn.write(' ')
+        trn.write(str(round((y[i] + img.header['qoffset_y']) / voxel_size)))
+        trn.write(' ')
+        trn.write(str(round((z[i] - img.header['qoffset_z']) / voxel_size)))
+        trn.write('\n')
+
+    trn.close()
+
+
+# Load the transformed data after transformation
+transform_data(data_points)
+transformed_data = np.genfromtxt(path + "cochlea_spiral_points_transformed.txt", dtype='float')
+
+
+# This function uses a scatterplot to plot the shape of the cochlea in an
+# interactive 3D format. Give it a dataset as input to also plot that
+def plot_3d_of_cochlea(resolution=10, data=None):
     xyzdata = []
     for x in range(0, 600, resolution):
         for y in range(0, 400, resolution):
@@ -36,28 +68,9 @@ def plot_3d_of_cochlea(resolution=10):
     ax = plt.axes(projection='3d')
     zdata = xyzdata[:, 2]
     ax.scatter3D(xyzdata[:, 0], xyzdata[:, 1], zdata, c=zdata, alpha=0.1)
-    coch_data = np.genfromtxt(path + "cochlea_spiral_points_transformed.txt")
-    ax.scatter3D(coch_data[:, 0], coch_data[:, 1], coch_data[:, 2], cmap='Reds')
+    if data is not None:
+        ax.scatter3D(data[:, 0], data[:, 1], data[:, 2], cmap='Reds')
     plt.show()
-
-
-def show_slices(slices):
-    fig, axes = plt.subplots(1, len(slices))
-    for i, slice in enumerate(slices):
-        axes[i].imshow(slice.T, cmap="gray", origin="lower")
-
-54
-slice_0 = img_data[449, :, :]
-v_min = slice_0.min()
-v_max = slice_0.max()
-# slice_1 = img_data[:, 60, :]
-# slice_2 = img_data[:, :, 129]
-# show_slices([slice_0, slice_1, slice_2])
-# plt.suptitle("Center slices for 3D image")
-# plt.show()
-
-voxel_size = 0.02449999935925007
-slice_size = 200
 
 
 # auxilliary function
@@ -68,7 +81,9 @@ def calculate_point_on_circle(center, radius, angle, vector1, vector2):
     return result
 
 
-def extract_points_in_image(norm_vect, data_point):
+# This function draws the slices based on a normal vector and a central data point.
+# It also needs to know which image to extract data from
+def extract_points_in_image(norm_vect, data_point, input_img):
     # initialise the image in which we'll place our datapoints:
     visualised_slice = np.zeros((slice_size, slice_size))
     # find a vector on the plane parallel to the x-axis:
@@ -102,19 +117,13 @@ def extract_points_in_image(norm_vect, data_point):
             # is implemented, it can be used here
             rounded_point = np.array([int(i) for i in point_in_data])
             try:
-                visualised_slice[r, c] = seg_data[rounded_point[0], rounded_point[1], rounded_point[2]]
+                visualised_slice[r, c] = input_img[rounded_point[0], rounded_point[1], rounded_point[2]]
             except IndexError:
                 visualised_slice[r, c] = 0
     return visualised_slice
 
 
-one_data_point = np.array([380, 76, 101])
-another_data_point = np.array([391, 76, 109])
-norm_vect_test = another_data_point - one_data_point
-
-print(f"norm vector for testing: {norm_vect_test}")
-
-
+# A bunch of rotations. Currently not used, but might come in handy later
 def rotation1(angle):
     angle = angle * math.pi / 180
     return np.array([[1, 0, 0],
@@ -136,10 +145,38 @@ def rotation3(angle):
                      [0, 0, 1]])
 
 
-testslice = extract_points_in_image(norm_vect_test, one_data_point)
-# useful arguments for imshow: cmap='gray', vmin=v_min, vmax=v_max
-io.imshow(testslice)
+# Playing around with testing as well as extracting only the data we're interested in.
+# Once it works as intended, it will be made into a function
+one_point = transformed_data[80]
+another_point = transformed_data[81]
+test_vect = another_point - one_point
+
+test_slice = extract_points_in_image(test_vect, one_point, img_data)
+
+test_slice_seg = extract_points_in_image(test_vect, one_point, seg_data)
+
+# dilation and erosion is used to remove unevenness as well as the gap caused by cartiledge
+test_slice_seg_p = dilation(test_slice_seg, disk(10 + border_thickness))
+test_slice_seg_p = erosion(test_slice_seg_p, disk(10))
+
+# defining and applying a mask such that all values outside the mask are set to 0
+test_slice_mask = test_slice_seg_p == 0
+test_slice_cutout = test_slice
+test_slice_cutout[test_slice_mask] = 0
+
+# showing the results of the above. too lazy for using subplots right now
+io.imshow(test_slice_seg)
 io.show()
+io.imshow(test_slice_seg_p)
+io.show()
+io.imshow(test_slice_cutout)
+io.show()
+
+
+
+
+
+
 
 
 
