@@ -5,6 +5,9 @@ from matplotlib import pyplot as plt
 from matplotlib import image as mpimg
 from mpl_toolkits import mplot3d
 
+import matplotlib.image as mpimg
+
+
 # Define path to directory on any machine
 path = os.getcwd() + "\\data\\"
 #print("path_to_nii: " + path_to_nii)
@@ -22,6 +25,18 @@ epi_shape = data.shape
 
 imgSegmentation = nib.load(path_seg)
 seg = imgSegmentation.get_fdata()
+
+################################################################################
+img = plt.imread(path + "img_test.png")
+print(img)
+plt.imshow(img)
+
+x, y = np.mgrid[0:img.shape[0], 0:img.shape[1]]
+
+ax = plt.axes(projection="3d")
+ax.plot_surface(x, y, x*y, rstride=10, cstride=10, facecolors = img)
+plt.show()
+################################################################################
 
 # Displaying slice
 plt.title("Slice")
@@ -84,12 +99,10 @@ for i in range(len(points_voxel)-1, 0, -1):
     #print("a: " + str(a) + " b: " + str(b) + " c: " + str(c))
 
     # Rewritten equation: a*(x-x0) / -c + b*(y-y0) / -c + z0 = z
-    #plane_equation = a*(x - x0) + b*(y - y0) + c*()
     plane_equation = (a*(x-x0) / (-c)) + (b*(y-y0) / (-c)) + z0
     #print(f"({a}*(x-{x0}) / (-{c})) + ({b}*(y-{y0}) / (-{c})) + {z0}")
 
     ax.plot_surface(x, y, plane_equation, color = 'red')
-
 ######
 
 plt.title("Spiral points in cochlea")
