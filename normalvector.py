@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import os
 
 # Define path to directory on any machine
-path = os.getcwd() + "\\02507\\data\\cochlea\\"
+path = os.getcwd() + "\\data\\"
 #print("path: " + path)
 
 # Choose .nii file for examination 
@@ -28,7 +28,10 @@ voxel_size = 0.02449999935925007
 width_in_mm = epi_shape[0] * voxel_size                      
 height_in_mm = epi_shape[1] * voxel_size
 depth_in_mm = epi_shape[2] * voxel_size
-#print("(" + str(width_in_mm) + ", " + str(height_in_mm) + ", " + str(depth_in_mm) + ")")
+
+print(str(width_in_mm))
+print(str(height_in_mm))
+print(str(depth_in_mm))
 
 # Find vector between two points
 def vector3d_between_two_points(v1, v2):
@@ -51,15 +54,15 @@ for i in range(x.size-1, 0, -1):
     M.append([v3[0], v3[1], v3[2]])
 
 # Edge case:
-file.write(str(M[x.size-1][0]))
+file.write(str(M[len(M)-1][0]))
 file.write(' ')
-file.write(str(M[x.size-1][1]))
+file.write(str(M[len(M)-1][1]))
 file.write(' ')
-file.write(str(M[x.size-1][2]))
+file.write(str(M[len(M)-1][2]))
 file.write('\n')
 
 # Print normal vectors to file
-for i in range(x.size-1, 0, -1):
+for i in range(len(M)-1, -1, -1):
     file.write(str(M[i][0]))
     file.write(' ')
     file.write(str(M[i][1]))
