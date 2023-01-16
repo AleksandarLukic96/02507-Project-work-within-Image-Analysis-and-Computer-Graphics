@@ -4,7 +4,9 @@ import nibabel as nib
 from matplotlib import pyplot as plt
 from matplotlib import image as mpimg
 from mpl_toolkits import mplot3d
-
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
+from PIL import Image
 import matplotlib.image as mpimg
 
 
@@ -27,14 +29,46 @@ imgSegmentation = nib.load(path_seg)
 seg = imgSegmentation.get_fdata()
 
 ################################################################################
-img = plt.imread(path + "img_test.png")
-print(img)
-plt.imshow(img)
+img = Image.open(path + "img_test.png")
+a = img.convert("P", palette=Image.ADAPTIVE, colors=8)
+a.save(path + "img_test2.png")
 
-x, y = np.mgrid[0:img.shape[0], 0:img.shape[1]]
+img2 = plt.imread(path + "img_test2.png")
+
+print("type(img2): " + str(type(img2)))
+print("img2.shape[0]: " + str(img2.shape[0]))
+print("img2.shape[1]: " + str(img2.shape[1]))
+print("img2.shape[2]: " + str(img2.shape[2]))
+
+print(img2)
+plt.imshow(img2)
+
+x, y = np.mgrid[0:img2.shape[0], 0:img2.shape[1]]
 
 ax = plt.axes(projection="3d")
-ax.plot_surface(x, y, x*y, rstride=10, cstride=10, facecolors = img)
+ax.plot_surface(x, y, x*y, rstride=10, cstride=10, facecolors = img2)
+plt.show()
+################################################################################
+
+################################################################################
+img = Image.open(path + "test_slice.png")
+a = img.convert("P", palette=Image.ADAPTIVE, colors=8)
+a.save(path + "test_slice2.png")
+
+#img1 = img_as_ubyte(plt.imread(path + "test_slice2.png"))
+img1 = plt.imread(path + "test_slice2.png")
+
+print("type(img1): " + str(type(img1)))
+print("img1.shape[0]: " + str(img1.shape[0]))
+print("img1.shape[1]: " + str(img1.shape[1]))
+
+print(img1)
+plt.imshow(img1)
+
+x, y = np.mgrid[0:img1.shape[0], 0:img1.shape[1]]
+
+ax = plt.axes(projection="3d")
+ax.plot_surface(x, y, x*y, rstride=1, cstride=1, facecolors = img1)
 plt.show()
 ################################################################################
 
