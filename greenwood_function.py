@@ -1,6 +1,6 @@
 import numpy as np
 
-def greenwoodFunction(cochlealength) -> list:
+def greenwoodFunction(cochlealength: float) -> list:
     """Returns a list of frequencies that can be heard 
     at certain points in the cochlea according to its length"""
     
@@ -16,9 +16,21 @@ def greenwoodFunction(cochlealength) -> list:
     
     return frequencies
 
-def greenwoodFunctionPoint(cochlealength, point) -> float:
+def greenwoodFunctionPoint(cochlealength: float, point: float) -> float:
     """Returns the frequency of a specific point in the cochlea.
     The point is in mm along the length of the cochlea"""
     x = (cochlealength - point) / cochlealength
     frequency = 165.4 * (10 ** (2.1 * x) - 0.88)
     return frequency
+
+def greenwoodFunctionFromPoints(cochlealength: float, points: list) -> list:
+    """Returns a list of frequencies that can be heard 
+    at the given points in the cochlea according to its length"""
+    
+    frequencies = []
+    for point in points:
+        x = (cochlealength - point) / cochlealength
+        frequency = 165.4 * (10 ** (2.1 * x) - 0.88)
+        frequencies.append(frequency)
+    
+    return frequencies
