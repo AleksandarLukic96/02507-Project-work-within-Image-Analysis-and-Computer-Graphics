@@ -1,11 +1,14 @@
 import os
+import sys
 import math
 import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
 from nibabel.affines import apply_affine
-from skimage import io
+from skimage import io, segmentation, measure
 from skimage.morphology import dilation, erosion, disk
+from skimage.color import label2rgb
+
 
 # ########## GLOBAL VARIABLES #########
 # Currently the size of the slices to draw is hard-coded to be this number:
@@ -83,7 +86,7 @@ def calculate_point_on_circle(center, radius, angle, vector1, vector2):
 
 # This function draws the slices based on a normal vector and a central data point.
 # It also needs to know which image to extract data from
-def extract_points_in_image(norm_vect, data_point, input_img):
+def extract_points_in_image_old(norm_vect, data_point, input_img):
     # initialise the image in which we'll place our datapoints:
     visualised_slice = np.zeros((slice_size, slice_size))
     # find a vector on the plane parallel to the x-axis:
@@ -123,6 +126,31 @@ def extract_points_in_image(norm_vect, data_point, input_img):
     return visualised_slice
 
 
+def extract_points_in_image(norm_vect, data_point, input_img):
+    # This method uses the much simpler approach suggested by Martin, in hopes of achieving
+    # a faster execution time
+    visualised_slice = np.zeros((slice_size, slice_size))
+    i_vect = np.cross(norm_vect, np.array([0, 0, 1]))
+#   print(f"i_vect before: {i_vect}")
+    if all(v == 0 for v in i_vect):
+        i_vect = norm_vect
+#    print(f"i_vect after: {i_vect}")
+    i_vect_n = i_vect/np.linalg.norm(i_vect)
+    j_vect = np.cross(norm_vect, i_vect)
+#    print(f"j_vect: {j_vect}")
+    j_vect_n = j_vect / np.linalg.norm(j_vect)
+
+    for r in range(0, slice_size):
+        for c in range(0, slice_size):
+            point_in_data = (r - slice_size/2) * i_vect_n + (c - slice_size/2) * j_vect_n + data_point
+            rounded_point = np.array([int(i) for i in point_in_data])
+            try:
+                visualised_slice[r, c] = input_img[rounded_point[0], rounded_point[1], rounded_point[2]]
+            except IndexError:
+                visualised_slice[r, c] = 0
+    return visualised_slice
+
+
 # A bunch of rotations. Currently not used, but might come in handy later
 def rotation1(angle):
     angle = angle * math.pi / 180
@@ -145,38 +173,58 @@ def rotation3(angle):
                      [0, 0, 1]])
 
 
-# Playing around with testing as well as extracting only the data we're interested in.
-# Once it works as intended, it will be made into a function
-one_point = transformed_data[80]
-another_point = transformed_data[81]
-test_vect = another_point - one_point
-
-test_slice = extract_points_in_image(test_vect, one_point, img_data)
-
-test_slice_seg = extract_points_in_image(test_vect, one_point, seg_data)
-
-# dilation and erosion is used to remove unevenness as well as the gap caused by cartiledge
-test_slice_seg_p = dilation(test_slice_seg, disk(10 + border_thickness))
-test_slice_seg_p = erosion(test_slice_seg_p, disk(10))
-
-# defining and applying a mask such that all values outside the mask are set to 0
-test_slice_mask = test_slice_seg_p == 0
-test_slice_cutout = test_slice
-test_slice_cutout[test_slice_mask] = 0
-
-# showing the results of the above. too lazy for using subplots right now
-io.imshow(test_slice_seg)
-io.show()
-io.imshow(test_slice_seg_p)
-io.show()
-io.imshow(test_slice_cutout)
-io.show()
+def make_vectors_naive(spiral_points):
+    result = np.zeros(spiral_points.shape)
+    for i in range(0, spiral_points.shape[0] - 1):
+        result[i] = spiral_points[i+1] - spiral_points[i]
+    return result
 
 
+def draw_nifty(filename, affine):
+    list_of_slices = []
+    no_slices = transformed_data.shape[0]
+    for i in range(0, no_slices-1):
+        one_point = transformed_data[i]
+        another_point = transformed_data[i+1]
+        test_vect = another_point - one_point
+
+        test_slice = extract_points_in_image(test_vect, one_point, img_data)
+        test_slice_seg = extract_points_in_image(test_vect, one_point, seg_data)
+        test_slice_seg = erosion(test_slice_seg, disk(2))
+
+        label_slice = measure.label(test_slice_seg, connectivity=1)
+        region_props = measure.regionprops(label_slice)
+
+        label_slice_filter = label_slice
+
+        center = np.array([int(slice_size/2), int(slice_size/2)])
+        min_dist = slice_size
+        min_dist_label = 0
+        for region in region_props:
+            distance = math.dist(center, region.centroid)
+            if distance < min_dist:
+                min_dist = distance
+                min_dist_label = region.label
+
+        label_slice_filter[label_slice_filter != min_dist_label] = 0
+
+        label_slice_filter = dilation(label_slice_filter, disk(10 + border_thickness))
+        label_slice_filter = erosion(label_slice_filter, disk(10))
+
+        cutout = test_slice
+        cutout[label_slice_filter == 0] = 0
+
+        list_of_slices.append(cutout)
+        # write progress in the terminal
+        sys.stdout.write("\rCompleted slice %i out of %i" % (i, no_slices))
+        sys.stdout.flush()
+
+    array_of_slices = np.array(list_of_slices)
+    nifti_file = nib.Nifti1Image(array_of_slices, affine)
+    nib.save(nifti_file, path + filename)
 
 
-
-
+draw_nifty("test_nifty2.nii", np.eye(4))
 
 
 
