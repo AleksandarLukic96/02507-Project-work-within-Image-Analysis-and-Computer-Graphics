@@ -154,10 +154,8 @@ class CameraTest(ThreeDScene):
 
 class Dot3DExample(ThreeDScene):
     def construct(self):
-        phi_init = 65*DEGREES
-        theta_init = -45*DEGREES
-        
-        self.set_camera_orientation(phi = phi_init, theta = theta_init)
+        phi_init = 65 * DEGREES
+        theta_init = -45 * DEGREES
 
         # Data points to plot
         data = np.genfromtxt(path_spiral_point, dtype = 'float')
@@ -165,42 +163,43 @@ class Dot3DExample(ThreeDScene):
         y = data[:, 1]
         z = data[:, 2]
 
-        # Defines limits of axes
-        axes = ThreeDAxes(
-            x_range = (-100, 600, 10),
-            y_range = (-100, 600, 10),
-            z_range = (-100, 600, 10)
-        )
-        
-        # Calculate center point for rotation
+        # Calculate mean center coordinates for spiral points
         center_x = round(np.mean(x))
         center_y = round(np.mean(y))
         center_z = round(np.mean(z))
-        center_point = Dot3D(point = axes.coords_to_point(center_x, center_y, center_z), color = RED_E)
+        
+        # Defines limits of axes according to mean center
+        axes = ThreeDAxes(
+            x_range = (center_x - 200, center_x + 200, 10),
+            y_range = (center_y - 200, center_y + 200, 10),
+            z_range = (center_z - 200, center_z + 200, 10)
+        )
+        
+        center_point = Dot3D(point = axes.coords_to_point(center_x, center_y, center_z), color = PURE_GREEN)
 
+        # Set camera orientation and frame center to the center point
+        self.set_camera_orientation(phi = phi_init, theta = theta_init, frame_center = center_point)
+                
         # Define colors for gradient of rendered points
-        colors = [BLUE_E, RED_E]
+        colors = [PURE_BLUE, PURE_RED]
         all_colors = color_gradient(colors, len(data))
         
         # Make array with spiral points
         points = []
         for i in range(0, len(data), 1):
-        #for i in range(0, 1):
-            point_spiral = Dot3D(point=axes.coords_to_point(x[i], y[i], z[i]), color = all_colors[i])
+        #for i in range(0, len(data), 10):
+            point_spiral = Dot3D(point = axes.coords_to_point(x[i], y[i], z[i]), color = all_colors[i])
             points.append(point_spiral)
         
         # Rendering:
         self.begin_ambient_camera_rotation(rate = PI/4)
         
-        self.play(FadeIn(axes))
         self.add(center_point)
         self.play(
             *[FadeIn(p) for p in points]
         )
-        
-        #self.play(*[Create(mob) for mob in points])
-                
-        self.wait(4)
+
+        self.wait(8)
         self.stop_ambient_camera_rotation()
 
 with tempconfig({"quality": "low_quality", "preview": True}):
