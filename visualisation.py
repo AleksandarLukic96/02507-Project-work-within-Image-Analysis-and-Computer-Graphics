@@ -4,7 +4,7 @@ import math
 import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
-from skimage import io, measure
+from skimage import io, measure, img_as_ubyte
 from skimage.morphology import dilation, erosion, disk
 from interpolationVoxelValues import trilinearInterpolation
 
@@ -129,11 +129,24 @@ def draw_nifty(filename, affine):
     nib.save(nifti_file, path + filename)
 
 
+def extract_slice_png(number_of_slices, nifty_file):
+    nifty_data = nib.load(path + nifty_file).get_fdata()
+    length = nifty_data.shape[0]
+    freq = int(length/number_of_slices)
+
+    for i in range(0, length-freq, freq):
+        drawn_slice = nifty_data[i, :, :]
+        io.imsave(path + '\\saved_slices\\slice' + str(i) + '.png', drawn_slice)
+        sys.stdout.write("\rSaved slice no. %i" % i)
+        sys.stdout.flush()
+
+
 test_affine = np.array([[0.0245, 0, 0, 0],
                         [0, 0.0245, 0, 0],
                         [0, 0, 0.0245, 0],
                         [0, 0, 0, 1]])
 
 
-draw_nifty("test_nifty3.nii", test_affine)
+# draw_nifty("test_nifty3.nii", test_affine)
+# extract_slice_png(10, "test_nifty3.nii")
 
