@@ -1,15 +1,12 @@
 import os
-import numpy as np
 
-# # Define path to directory on any machine
-# path = os.getcwd() + "\\data\\"
-#
-# datapoints = np.genfromtxt('data/cochlea_spiral_points.txt', dtype='float')
+# Define path to directory on any machine
+path = os.getcwd() + "\\data\\"
 
 
 # Transform data points in physical space to voxels
 def transform_data(data, img):
-    trn = open('data/cochlea_spiral_points_transformed.txt', 'w')
+    trn = open(path + 'cochlea_spiral_points_transformed.txt', 'w')
 
     voxel_size = img.header['pixdim'][1]
     x = data[:, 0]
