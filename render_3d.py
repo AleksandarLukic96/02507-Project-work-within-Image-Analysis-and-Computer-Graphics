@@ -10,6 +10,7 @@ from manim import *
 import numpy as np
 import itertools as it
 import nibabel as nib
+from matplotlib import pyplot as plt
 
 path = os.getcwd()
 path_spiral_point = path + "\\data\\cochlea_spiral_points_transformed.txt"
@@ -166,6 +167,27 @@ class SamplePlane(ThreeDScene):
         phi_init = 65 * DEGREES
         theta_init = -45 * DEGREES
 
+        #TODO: The Manim Surface field "checkerboard_colors", 
+        # takes an array of colors in Hex and parce them as the color 
+        # for the pixels in a repeating pattern.
+        # See the demo made so far beneath here: 
+        
+        # Slices to parce as texture onto plane surfaces
+        slice_0 = path_saved_slices + "slice0.png"
+        slice_66 = path_saved_slices + "slice660.png"
+        
+        #TODO: This should be changed into the same format as "colors" below:
+        img = plt.imread(slice_0)
+        print(img)
+        print(str(img[0]))
+
+        colors = [
+            PURE_BLUE, BLUE_E, BLUE_D, BLUE_C, BLUE_B, BLUE_A,
+            PURE_RED, RED_E, RED_D, RED_C, RED_B, RED_A
+        ]
+        print(colors)
+        print(colors[0])
+        
         # Data points to plot
         data_points = np.genfromtxt(path_interpolated_points, dtype = 'float')
         x = np.ndarray.round(data_points[:, 0][0::10])
@@ -195,7 +217,7 @@ class SamplePlane(ThreeDScene):
 
         # Set camera orientation and frame center to the center point
         self.set_camera_orientation(phi = phi_init, theta = theta_init, frame_center = center_point)
-        
+
         # Extract equation variables accordingly with normal vectors and center point
         i_norm_vecs = []
         j_norm_vecs = []
@@ -229,7 +251,9 @@ class SamplePlane(ThreeDScene):
             ),
             u_range = [-25, 25],
             v_range = [-25, 25],
-            checkerboard_colors = [PURE_BLUE, PURE_RED]
+            checkerboard_colors = [PURE_BLUE, BLUE_E, BLUE_D, BLUE_C, BLUE_B, BLUE_A,
+                                   PURE_RED, RED_E, RED_D, RED_C, RED_B, RED_A]
+            #checkerboard_colors = img.all()
         )
         
         index = 66
@@ -254,27 +278,9 @@ class SamplePlane(ThreeDScene):
             checkerboard_colors = [PURE_BLUE, PURE_RED]
         )
         
-        # Parce texture from slices onto plane surfaces
-        slice_0 = path_saved_slices + "slice0.png"
-        slice_0_flip = path_saved_slices + "slice0_flip.png"
-        
-        slice_66 = path_saved_slices + "slice660.png"
-        slice_66_flip = path_saved_slices + "slice660_flip.png"
-        
-        surfaces_0 = [
-            (Surface(surface), slice_0, slice_0_flip) 
-            for surface in [plane_surface1, 200, 200]
-        ]
-        
-        surfaces_66 = [
-            (Surface(surface), slice_66, slice_66_flip) 
-            for surface in [plane_surface2]
-        ]
-        
-        
         # Rendering:
         self.begin_ambient_camera_rotation(rate = PI/3)
-        #self.add(center_point)
+        self.add(center_point)
         self.add(plane_surface1)
         #self.play(FadeIn(plane_surface1))
         #self.wait(1)
