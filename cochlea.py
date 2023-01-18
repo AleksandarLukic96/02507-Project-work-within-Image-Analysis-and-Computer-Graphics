@@ -9,6 +9,8 @@ from skimage.color import rgb2gray
 from PIL import Image
 import matplotlib.image as mpimg
 
+from greenwood_function import greenwoodFunctionFromPoints, getFrequencyColors
+
 
 # Define path to directory on any machine
 path = os.getcwd() + "\\data\\"
@@ -72,6 +74,19 @@ ax.plot_surface(x, y, x*y, rstride=1, cstride=1, facecolors = img1)
 plt.show()
 ################################################################################
 
+################################################################################
+cochleaLength = 35 # mm
+
+# Generate random points from length
+randomPoints = np.linspace(0, cochleaLength, 111)
+
+# Get list of frequencies
+myFrequencies = greenwoodFunctionFromPoints(cochleaLength, randomPoints)
+
+# Get colors for frequencies
+colors = getFrequencyColors(myFrequencies)
+################################################################################
+
 # Displaying slice
 plt.title("Slice")
 plt.xlabel("width pixel scaling")
@@ -108,7 +123,7 @@ ax.set_ylim(0, height)
 ax.set_zlim(0, slices)
 
 # Creating plot of spiral points
-ax.scatter3D(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], color="green")
+ax.scatter3D(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], c=colors)
 
 # Creating plot of normal vectors:
 ax.quiver(points_voxel[:,0], points_voxel[:,1], points_voxel[:,2], points_normal_voxel[:,0], points_normal_voxel[:,1], points_normal_voxel[:,2], color = "blue")
