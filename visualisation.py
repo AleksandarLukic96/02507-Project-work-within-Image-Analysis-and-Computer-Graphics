@@ -7,6 +7,7 @@ import numpy as np
 from skimage import io, segmentation, measure
 from skimage.morphology import dilation, erosion, disk
 from data_transformer import transform_data
+from interpolationVoxelValues import trilinearInterpolation
 
 # ########## GLOBAL VARIABLES #########
 # Currently the size of the slices to draw is hard-coded to be this number:
@@ -27,6 +28,8 @@ img_seg = nib.load(path + "cochlea_segmentation.nii")
 seg_data = img_seg.get_fdata()
 
 data_points = np.genfromtxt(path + "cochlea_spiral_points.txt", dtype='float')
+new_data_points = np.genfromtxt("interpolatedPoints.txt")
+new_vectors = np.genfromtxt("normalVec.txt")
 
 # Load the transformed data after transformation
 transform_data(data_points, img)
@@ -53,70 +56,76 @@ def plot_3d_of_cochlea(resolution=10, data=None):
 
 
 # Extract data from the 3D image and draw it as a 2D slice
-def extract_points_in_image(norm_vect, data_point, input_img):
+def extract_points_in_image(norm_vect, data_point, input_img, segmentation=False, mask=None):
     # This method uses the much simpler approach suggested by Martin, in hopes of achieving
     # a faster execution time
     visualised_slice = np.zeros((slice_size, slice_size))
     i_vect = np.cross(norm_vect, np.array([0, 0, 1]))
-    #   print(f"i_vect before: {i_vect}")
     if all(v == 0 for v in i_vect):
         i_vect = norm_vect
-    #    print(f"i_vect after: {i_vect}")
     i_vect_n = i_vect / np.linalg.norm(i_vect)
     j_vect = np.cross(norm_vect, i_vect)
-    #    print(f"j_vect: {j_vect}")
     j_vect_n = j_vect / np.linalg.norm(j_vect)
 
     for r in range(0, slice_size):
         for c in range(0, slice_size):
+            if mask is not None and mask[r, c] == 0:
+                continue
             point_in_data = (r - slice_size / 2) * i_vect_n + (c - slice_size / 2) * j_vect_n + data_point
-            rounded_point = np.array([int(i) for i in point_in_data])
             try:
-                visualised_slice[r, c] = input_img[rounded_point[0], rounded_point[1], rounded_point[2]]
+                if segmentation:
+                    visualised_slice[r, c] = input_img[int(round(point_in_data[0])), int(round(point_in_data[1])), int(round(point_in_data[2]))]
+                else:
+                    visualised_slice[r, c] = trilinearInterpolation(point_in_data, input_img)
             except IndexError:
                 visualised_slice[r, c] = 0
     return visualised_slice
+
+
+def generate_mask(norm_vect, data_point, input_img):
+    seg_slice = extract_points_in_image(norm_vect, data_point, input_img, segmentation=True)
+    seg_slice = erosion(seg_slice, disk(4))
+
+    label_slice = measure.label(seg_slice, connectivity=1)
+    region_props = measure.regionprops(label_slice)
+
+    label_slice_filter = label_slice
+
+    center = np.array([int(slice_size / 2), int(slice_size / 2)])
+    min_dist = slice_size
+    min_dist_label = 0
+    for region in region_props:
+        distance = math.dist(center, region.centroid)
+        if distance < min_dist:
+            min_dist = distance
+            min_dist_label = region.label
+
+    label_slice_filter[label_slice_filter != min_dist_label] = 0
+
+    label_slice_filter = dilation(label_slice_filter, disk(12 + border_thickness))
+    label_slice_filter = erosion(label_slice_filter, disk(10))
+
+    return label_slice_filter
 
 
 # Using the function above, draw slices for all available data points and save
 # it as a combined nifty file
 def draw_nifty(filename, affine):
     list_of_slices = []
-    no_slices = transformed_data.shape[0]
-    for i in range(0, no_slices - 1):
-        one_point = transformed_data[i]
-        another_point = transformed_data[i + 1]
-        test_vect = another_point - one_point
+    no_slices = new_data_points.shape[0]
+    for i in range(0, no_slices - 1): # 0, no_slices - 1
+        point = new_data_points[i]
+        vect = new_vectors[i]
 
-        test_slice = extract_points_in_image(test_vect, one_point, img_data)
-        test_slice_seg = extract_points_in_image(test_vect, one_point, seg_data)
-        test_slice_seg = erosion(test_slice_seg, disk(2))
-
-        label_slice = measure.label(test_slice_seg, connectivity=1)
-        region_props = measure.regionprops(label_slice)
-
-        label_slice_filter = label_slice
-
-        center = np.array([int(slice_size / 2), int(slice_size / 2)])
-        min_dist = slice_size
-        min_dist_label = 0
-        for region in region_props:
-            distance = math.dist(center, region.centroid)
-            if distance < min_dist:
-                min_dist = distance
-                min_dist_label = region.label
-
-        label_slice_filter[label_slice_filter != min_dist_label] = 0
-
-        label_slice_filter = dilation(label_slice_filter, disk(10 + border_thickness))
-        label_slice_filter = erosion(label_slice_filter, disk(10))
+        mask = generate_mask(vect, point, seg_data)
+        test_slice = extract_points_in_image(vect, point, img_data, mask=mask)
 
         cutout = test_slice
-        cutout[label_slice_filter == 0] = 0
+        cutout[mask == 0] = 0
 
         list_of_slices.append(cutout)
         # write progress in the terminal
-        sys.stdout.write("\rCompleted slice %i out of %i" % (i, no_slices))
+        sys.stdout.write("\rCompleted slice %i out of %i" % (i+1, no_slices))
         sys.stdout.flush()
 
     array_of_slices = np.array(list_of_slices)
@@ -130,7 +139,7 @@ test_affine = np.array([[0.0245, 0, 0, 0],
                         [0, 0, 0, 1]])
 
 
-# draw_nifty("test_nifty2.nii", test_affine)
+draw_nifty("test_nifty3.nii", test_affine)
 
 
 # Calculate the length between all the given data points (source is currently hard-coded)
