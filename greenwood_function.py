@@ -34,3 +34,27 @@ def greenwoodFunctionFromPoints(cochlealength: float, points: list) -> list:
         frequencies.append(frequency)
     
     return frequencies
+
+# Generate color list from frequencies
+def getFrequencyColors(frequencies: list):
+    colors = []
+    for i in range(len(frequencies)):
+        if frequencies[i] < 125.0:
+            colors.append('red')
+        elif frequencies[i] < 250.0:
+            colors.append('orange')
+        elif frequencies[i] < 500.0:
+            colors.append('yellow')
+        elif frequencies[i] < 1000.0:
+            colors.append('green')
+        elif frequencies[i] < 2000.0:
+            colors.append('lime')
+        elif frequencies[i] < 4000.0:
+            colors.append('lightblue')
+        elif frequencies[i] < 8000.0:
+            colors.append('blue')
+        elif frequencies[i] < 16000.0:
+            colors.append('violet')
+        else:
+            colors.append('purple')
+    return colors
