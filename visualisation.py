@@ -4,9 +4,8 @@ import math
 import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
-from skimage import io, segmentation, measure
+from skimage import io, measure
 from skimage.morphology import dilation, erosion, disk
-from data_transformer import transform_data
 from interpolationVoxelValues import trilinearInterpolation
 
 # ########## GLOBAL VARIABLES #########
@@ -27,13 +26,8 @@ img_data = img.get_fdata()
 img_seg = nib.load(path + "cochlea_segmentation.nii")
 seg_data = img_seg.get_fdata()
 
-data_points = np.genfromtxt(path + "cochlea_spiral_points.txt", dtype='float')
 new_data_points = np.genfromtxt("interpolatedPoints.txt")
 new_vectors = np.genfromtxt("normalVec.txt")
-
-# Load the transformed data after transformation
-transform_data(data_points, img)
-transformed_data = np.genfromtxt(path + "cochlea_spiral_points_transformed.txt", dtype='float')
 
 
 # This function uses a scatterplot to plot the shape of the cochlea in an
@@ -82,6 +76,8 @@ def extract_points_in_image(norm_vect, data_point, input_img, segmentation=False
     return visualised_slice
 
 
+# This function extracts a slice from the given plane in a segmentation image
+# and uses BLOB analysis techniques to create a mask
 def generate_mask(norm_vect, data_point, input_img):
     seg_slice = extract_points_in_image(norm_vect, data_point, input_img, segmentation=True)
     seg_slice = erosion(seg_slice, disk(4))
@@ -108,7 +104,7 @@ def generate_mask(norm_vect, data_point, input_img):
     return label_slice_filter
 
 
-# Using the function above, draw slices for all available data points and save
+# Using the functions above, draw slices for all available data points and save
 # it as a combined nifty file
 def draw_nifty(filename, affine):
     list_of_slices = []
@@ -141,13 +137,3 @@ test_affine = np.array([[0.0245, 0, 0, 0],
 
 draw_nifty("test_nifty3.nii", test_affine)
 
-
-# Calculate the length between all the given data points (source is currently hard-coded)
-def estimate_length_raw_datapoints():
-    sum = 0
-    for i in range(0, data_points.shape[0] - 1):
-        sum = sum + math.dist(data_points[i], data_points[i + 1])
-    return sum
-
-
-print(f"App. expected length of cochlea when fully unfolded: {estimate_length_raw_datapoints()}")
