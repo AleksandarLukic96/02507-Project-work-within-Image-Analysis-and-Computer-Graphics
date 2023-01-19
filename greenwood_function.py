@@ -1,6 +1,7 @@
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 pathImgInterpolated = 'data/test_nifty3.nii'
 pathImg = 'data/cochlea.nii'
@@ -40,9 +41,10 @@ def greenwoodFunctionForPoint(cochlealength: float, point: float) -> float:
     frequency = 165.4 * (10 ** (2.1 * x) - 0.88)
     return frequency
 
-def greenwoodFunctionFromPoints(cochlealength: float, points: list) -> list:
+def greenwoodFunction(cochlealength: float) -> list:
     """Returns a list of frequencies that can be heard 
     at the given points in the cochlea according to its length"""
+    points = getListOfDataPoints()
     
     frequencies = []
     for point in points:
@@ -71,16 +73,43 @@ def getFrequencyColors(frequencies: list):
         elif frequency < 8000.0:
             colors.append('blue')
         elif frequency < 16000.0:
-            colors.append('violet')
+            colors.append('darkviolet')
         else:
             colors.append('purple')
     return colors
 
-# Get the list of data points in mm from the base of the cochlea
-dataPoints = getListOfDataPoints()
+# Generate color list from frequencies as hue values
+def getFrequencyColorsAsHue(frequencies: list):
+    colors = []
+    for frequency in frequencies:
+        if frequency < 125.0:
+            colors.append(getHueValueFromColor('red'))
+        elif frequency < 250.0:
+            colors.append(getHueValueFromColor('orange'))
+        elif frequency < 500.0:
+            colors.append(getHueValueFromColor('yellow'))
+        elif frequency < 1000.0:
+            colors.append(getHueValueFromColor('green'))
+        elif frequency < 2000.0:
+            colors.append(getHueValueFromColor('lime'))
+        elif frequency < 4000.0:
+            colors.append(getHueValueFromColor('lightblue'))
+        elif frequency < 8000.0:
+            colors.append(getHueValueFromColor('blue'))
+        elif frequency < 16000.0:
+            colors.append(getHueValueFromColor('darkviolet'))
+        else:
+            colors.append(getHueValueFromColor('purple'))
+    return colors
+
+def getHueValueFromColor(color: str):
+    hsv_value = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
+    return hsv_value[0]
 
 # Get list of frequencies
-frequencyList = greenwoodFunctionFromPoints(cochleaLength, dataPoints)
+frequencyList = greenwoodFunction(cochleaLength)
+
+colorList = getFrequencyColorsAsHue(frequencyList)
 
 # Get colors for frequencies
 colors = getFrequencyColors(frequencyList)

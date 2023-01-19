@@ -7,9 +7,16 @@ import numpy as np
 from skimage import io, measure, img_as_ubyte
 from skimage.color import gray2rgb, rgb2hsv, hsv2rgb
 
+from greenwood_function import getFrequencyColorsAsHue, greenwoodFunction
+
 # Setting the path and loading the 3D file
 path = os.getcwd() + "\\data\\"
+
+img = nib.load(path + 'cochlea.nii')
 nifty_data = nib.load(path + "test_nifty3.nii").get_fdata()
+
+# Get voxel size from the header of the original image
+voxelSize = img.header.get_zooms()[0]
 
 # Extract the prettiest cross section from the nifti
 cross_sec = nifty_data[:, 100, :]
@@ -38,24 +45,23 @@ def show_comparison(hsv_img):
 
 # setting the Saturation channel to equal the Value channel (which currently holds the entire gray-scale image)
 cross_sec_edit = cross_sec_hsv
-cross_sec_edit[:, :, 1] = cross_sec_edit[:, :, 2] + 0.2
+cross_sec_edit[:, :, 1] = cross_sec_edit[:, :, 2] + 0.4
 
+# Get list of frequencies
+cochleaLength = nifty_data.shape[0] * voxelSize
+
+frequencyList = greenwoodFunction(cochleaLength)
+
+# Get colors for frequencies
+colors = getFrequencyColorsAsHue(frequencyList)
 
 # Looping through the image to set the desired Hue values
-i = 0
 for r in range(0, cross_sec.shape[0]):
-    i = i + 1/1110
     for c in range(0, cross_sec.shape[1]):
-        cross_sec_edit[r, c, 0] = i
-
+        cross_sec_edit[r, c, 0] = colors[r]
 
 # showing the result
 show_comparison(cross_sec_edit)
 cross_sec_edit = hsv2rgb(cross_sec_edit)
 io.imshow(cross_sec_edit)
 io.show()
-
-
-
-
-
