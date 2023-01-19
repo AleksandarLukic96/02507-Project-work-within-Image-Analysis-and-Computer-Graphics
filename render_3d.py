@@ -6,11 +6,14 @@
 # Additionally add flags -pqh for high quality
 
 import os
+import sys
 from manim import *
 import numpy as np
 import itertools as it
 import nibabel as nib
 from matplotlib import pyplot as plt
+from skimage import img_as_ubyte
+from skimage.color import gray2rgb
 
 path = os.getcwd()
 path_spiral_point = path + "\\data\\cochlea_spiral_points_transformed.txt"
@@ -21,57 +24,9 @@ path_saved_slices = path + "\\data\\saved_slices\\"
 path_img_test = path + "\\data\\img_test.png"
 path_cochlea_tunnel = path + "\\data\\cochlea_tunnel.nii"
 
-class CreateCircle(Scene):
-    def construct(self):
-        circle = Circle()  # create a circle
-        circle.set_fill(GREEN, opacity=0.5)  # set the color and transparency
-        self.play(Create(circle))  # show the circle on screen
-        
-class SquareToCircle(Scene):
-    def construct(self):
-        circle = Circle()  # create a circle
-        circle.set_fill(PINK, opacity=0.5)  # set color and transparency
-
-        square = Square()  # create a square
-        square.rotate(PI / 4)  # rotate a certain amount
-
-        self.play(Create(square))  # animate the creation of the square
-        self.play(Transform(square, circle))  # interpolate the square into the circle
-        self.play(FadeOut(square))  # fade out animation        
-
-class SquareAndCircle(Scene):
-    def construct(self):
-        circle = Circle()  # create a circle
-        circle.set_fill(PINK, opacity=0.5)  # set the color and transparency
-
-        square = Square()  # create a square
-        square.set_fill(BLUE, opacity=0.5)  # set the color and transparency
-
-        square.next_to(circle, RIGHT, buff=0.5)  # set the position
-        self.play(Create(circle), Create(square))  # show the shapes on screen
-
-class AnimatedSquareToCircle(Scene):
-    def construct(self):
-        circle = Circle()  # create a circle
-        square = Square()  # create a square
-
-        self.play(Create(square))  # show the square on screen
-        self.play(square.animate.rotate(PI / 4))  # rotate the square
-        self.play(
-            ReplacementTransform(square, circle)
-        )  # transform the square into a circle
-        self.play(
-            circle.animate.set_fill(PINK, opacity=0.5)
-        )  # color the circle on screen
-        
-class DifferentRotations(Scene):
-    def construct(self):
-        left_square = Square(color=BLUE, fill_opacity=0.7).shift(2 * LEFT)
-        right_square = Square(color=GREEN, fill_opacity=0.7).shift(2 * RIGHT)
-        self.play(
-            left_square.animate.rotate(PI), Rotate(right_square, angle=PI), run_time=2
-        )
-        self.wait()
+def rgb_to_hex(rgb):
+    r,g,b = rgb
+    return '#%02x%02x%02x' % (r,g,b)
 
 class ArrowScene(Scene):
     def construct(self):
@@ -141,83 +96,78 @@ class ArrowScene(Scene):
             #FadeOut(arrow_down)
         )
 
-class ImageImport(Scene):
-    def construct(self):
-        img = ImageMobject(path_img_test)
-        self.play(FadeIn(img))
-        self.wait(1)
-        self.play(FadeOut(img)) 
-
-class CameraTest(ThreeDScene):
-  def construct(self):
-    phi, theta, focal_distance, gamma, distance_to_origin = self.camera.get_value_trackers()
-
-    self.add(ThreeDAxes())
-    self.wait()
-    self.play(phi.animate.set_value(50*DEGREES))
-    self.play(theta.animate.set_value(50*DEGREES))
-    self.play(gamma.animate.set_value(1))
-    self.play(distance_to_origin.animate.set_value(2))
-    self.play(focal_distance.animate.set_value(25))
-    self.wait()
-
-class SamplePlane(ThreeDScene):
+class SpiralPointsAndPlanes(ThreeDScene):
     def construct(self):
         # Default camera settings/angles
         phi_init = 65 * DEGREES
         theta_init = -45 * DEGREES
 
-        #TODO: The Manim Surface field "checkerboard_colors", 
-        # takes an array of colors in Hex and parce them as the color 
-        # for the pixels in a repeating pattern.
-        # See the demo made so far beneath here: 
+        ################################################################ TODO: Implement a way to render the slices onto Surface objects 
+        num = -1
+        if num >= 0:
+            # Slice to parce as texture onto plane surfaces
+            slice_0 = path_saved_slices + "slice0.png"
+            
+            # Convert png data to list of hex-code colors
+            img = plt.imread(slice_0)
+            img_rgb = img_as_ubyte(img)
+            img_hex = []
+            step = 1
+            for x in range(0, img_rgb.shape[0], step):
+                for y in range(0, img_rgb.shape[1], step):
+                    img_hex.append(rgb_to_hex(img_rgb[x][y]))
+        ################################################################ TODO:
         
-        # Slices to parce as texture onto plane surfaces
-        slice_0 = path_saved_slices + "slice0.png"
-        slice_66 = path_saved_slices + "slice660.png"
-        
-        #TODO: This should be changed into the same format as "colors" below:
-        img = plt.imread(slice_0)
-        print(img)
-        print(str(img[0]))
-
-        colors = [
-            PURE_BLUE, BLUE_E, BLUE_D, BLUE_C, BLUE_B, BLUE_A,
-            PURE_RED, RED_E, RED_D, RED_C, RED_B, RED_A
-        ]
-        print(colors)
-        print(colors[0])
+        # Span of points extracted from  
+        span = 10
         
         # Data points to plot
         data_points = np.genfromtxt(path_interpolated_points, dtype = 'float')
-        x = np.ndarray.round(data_points[:, 0][0::10])
-        y = np.ndarray.round(data_points[:, 1][0::10])
-        z = np.ndarray.round(data_points[:, 2][0::10])
-
+        x = np.ndarray.round(data_points[:, 0][0::span])
+        y = np.ndarray.round(data_points[:, 1][0::span])
+        z = np.ndarray.round(data_points[:, 2][0::span])
+        
         # Normal vectors to define parametric equations
         data_norm_vecs = np.genfromtxt(path_normal_vectors, dtype = 'float')
-        n1 = data_norm_vecs[:, 0][0::10]
-        n2 = data_norm_vecs[:, 1][0::10]
-        n3 = data_norm_vecs[:, 2][0::10]
+        n1 = data_norm_vecs[:, 0][0::span]
+        n2 = data_norm_vecs[:, 1][0::span]
+        n3 = data_norm_vecs[:, 2][0::span]
         
         # Calculate mean center coordinates for spiral points
         center_x = round(np.mean(x))
         center_y = round(np.mean(y))
         center_z = round(np.mean(z))
-                
+
+        # Amount of points to be plotted
+        data_points_len = int(round(len(data_points)/span))
+        
         # Defines limits of axes according to mean center
+        axes_span = 200
         axes = ThreeDAxes(
-            x_range = (center_x - 200, center_x + 200, 10),
-            y_range = (center_y - 200, center_y + 200, 10),
-            z_range = (center_z - 200, center_z + 200, 10)
+            x_range = (center_x - axes_span, center_x + axes_span, span),
+            y_range = (center_y - axes_span, center_y + axes_span, span),
+            z_range = (center_z - axes_span, center_z + axes_span, span)
         )
         
-        # 3d dot of Center point for referrence 
+        # 3d dot of Center point for axes-referrence 
         center_point = Dot3D(point = axes.coords_to_point(center_x, center_y, center_z), color = PURE_GREEN)
 
         # Set camera orientation and frame center to the center point
         self.set_camera_orientation(phi = phi_init, theta = theta_init, frame_center = center_point)
 
+        # Define colors for gradient of rendered points
+        colors = [PURE_BLUE, PURE_RED]
+        all_colors = color_gradient(colors, data_points_len)
+        
+        # Make array with spiral points
+        points = []
+        for i in range(0, data_points_len, 1):
+            point_spiral = Dot3D(point = axes.coords_to_point(x[i], y[i], z[i]), color = all_colors[i])
+            points.append(point_spiral)
+            sys.stdout.write("\rGenerating 3D point no. %i" % i)
+            sys.stdout.flush()
+        sys.stdout.write("\rGenerating 3D point Copmleted!\n")
+        
         # Extract equation variables accordingly with normal vectors and center point
         i_norm_vecs = []
         j_norm_vecs = []
@@ -231,8 +181,11 @@ class SamplePlane(ThreeDScene):
             j_vec_norm = j_vec / np.linalg.norm(j_vec)
             i_norm_vecs.append(i_vec_norm)
             j_norm_vecs.append(j_vec_norm)
+            sys.stdout.write("\rCalculating ortogonal normal vector pair no. %i" % i)
+            sys.stdout.flush()
+        sys.stdout.write("\rCalculating ortogonal normal vector pair Completed!\n")
         
-        index = 0
+        index = 55
         x0 = x[index]
         y0 = y[index]
         z0 = z[index]
@@ -242,7 +195,9 @@ class SamplePlane(ThreeDScene):
         j1 = j_norm_vecs[index][0]
         j2 = j_norm_vecs[index][1]
         j3 = j_norm_vecs[index][2]
-            
+        
+        # Create object
+        sys.stdout.write("\rCreating slice at index %i" % index)
         plane_surface1 = Surface(
             lambda u, v: axes.c2p(
                 x0 + (u * i1) + (v * j1), 
@@ -251,46 +206,25 @@ class SamplePlane(ThreeDScene):
             ),
             u_range = [-25, 25],
             v_range = [-25, 25],
-            checkerboard_colors = [PURE_BLUE, BLUE_E, BLUE_D, BLUE_C, BLUE_B, BLUE_A,
-                                   PURE_RED, RED_E, RED_D, RED_C, RED_B, RED_A]
-            #checkerboard_colors = img.all()
+            fill_color = WHITE
         )
-        
-        index = 66
-        x0 = x[index]
-        y0 = y[index]
-        z0 = z[index]
-        i1 = i_norm_vecs[index][0]
-        i2 = i_norm_vecs[index][1]
-        i3 = i_norm_vecs[index][2]
-        j1 = j_norm_vecs[index][0]
-        j2 = j_norm_vecs[index][1]
-        j3 = j_norm_vecs[index][2]
-        
-        plane_surface2 = Surface(
-            lambda u, v: axes.c2p(
-                x0 + (u * i1) + (v * j1), 
-                y0 + (u * i2) + (v * j2), 
-                z0 + (u * i3) + (v * j3)
-            ),
-            u_range = [-25, 25],
-            v_range = [-25, 25],
-            checkerboard_colors = [PURE_BLUE, PURE_RED]
-        )
+        sys.stdout.flush()
+        sys.stdout.write("\rCreating slice Completed!\n")
         
         # Rendering:
-        self.begin_ambient_camera_rotation(rate = PI/3)
+        sys.stdout.write("\rRendering starting:\n")
+        rate = 3
         self.add(center_point)
+        self.play(
+            *[Create(p) for p in points]
+        )
         self.add(plane_surface1)
-        #self.play(FadeIn(plane_surface1))
-        #self.wait(1)
-        #self.add(plane_surface2)
-        #self.play(FadeIn(plane_surface2))
-        self.wait(6)
+        self.begin_ambient_camera_rotation(rate = PI/rate)
+        self.wait(rate * 2)
         self.stop_ambient_camera_rotation()
+        sys.stdout.write("\rRendering Completed!\n")        
         
-        
-class Dot3DExample(ThreeDScene):
+class SpiralPoints3DExample(ThreeDScene):
     def construct(self):
         phi_init = 65 * DEGREES
         theta_init = -45 * DEGREES
@@ -341,9 +275,6 @@ class Dot3DExample(ThreeDScene):
         self.stop_ambient_camera_rotation()
 
 with tempconfig({"quality": "low_quality", "preview": True}):
-    #scene = ArrowScene()
-    #scene = ImageImport()
-    #scene = Dot3DExample()
-    #scene = CameraTest()
-    scene = SamplePlane()
+    scene = SpiralPointsAndPlanes()
+    #scene = SpiralPoints3DExample()
     scene.render()
